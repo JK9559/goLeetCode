@@ -1,0 +1,23 @@
+可重入锁：
+就是已经获得了锁的 线程，可以再次进入被该锁锁定的代码块。
+优点是可以避免死锁。主要是实现方式就是内部的计数器，保证，加了的锁一定被解锁
+
+redisson总结：
+通过 Redisson 实现分布式可重入锁（实现二），
+比纯自己通过set key value px milliseconds nx +lua 实现（实现一）的效果更好些，
+虽然基本原理都一样，因为通过分析源码可知，RedissonLock
+是可重入的，并且考虑了失败重试，可以设置锁的最大等待时间，
+在实现上也做了一些优化，减少了无效的锁申请，提升了资源的利用率。
+
+trylock会设置一个锁的过期时间，如果锁了，java客户端崩溃了 那么expire之后会自动解锁
+但是lock方法的过期时间是-1 锁了就锁了，必须主动解锁
+这时如果java客户端崩了，会死锁。但是在Redisson里，有个lockWatchDog，会在redisson实例被关闭之前
+不断延长锁的有效期。：
+在使用 RedissonLock#lock() 方法，我们要求持续持有锁，直到手动释放。但是实际上，
+我们有一个隐藏条件，如果 Java 进程挂掉时，需要自动释放。那么，
+如果实现 RedissonLock#lock() 时，设置过期 Redis 为无限大，
+或者不过期都不合适。那么 RedissonLock 是怎么实现的呢？RedissonLock 先获得
+一个 internalLockLeaseTime 的分布式锁，然后每 internalLockLeaseTime / 3 时
+间，定时调用 #renewExpirationAsync(long threadId) 方法，进行续租。这样，在
+ Java 进程异常 Crash 掉后，能够保证最多 internalLockLeaseTime 时间后，分布
+ 式锁自动释放。

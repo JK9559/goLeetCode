@@ -1,0 +1,71 @@
+redis实现令牌桶限流：
+说明算法即可
+
+https://blog.csdn.net/zzpueye/article/details/81451916?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task
+
+为啥redis的事务不支持回滚？
+redis的命令只会因为错误的语法而失败，或者命令用在了错误的类型上
+也就是说 在编程的时候 肯定可以发现
+
+请说说 Redis 的线程模型？
+Redis 是非阻塞 IO ，多路复用。
+
+redis持久化：
+rdb和aof
+bgsave的原理：fork和cow：fork父进程fork出子进程来做快照的IO操作，父进程继续提供服务。
+cow：copy on write：在继续提供服务的时候，如果出现对数据的改变，会将改变的数据分页出来，子进程
+专心写一个页。
+
+Redis过期键删除策略：
+一、被动删除：
+只有key被操作时(如GET)，REDIS才会被动检查该key是否过期，如果过期则删除之并且返回NIL。
+1、这种删除策略对CPU是友好的，删除操作只有在不得不的情况下才会进行，不会其他的expire key上浪费无谓的CPU时间。
+2、但是这种策略对内存不友好，一个key已经过期，但是在它被操作之前不会被删除，仍然占据内存空间。如果有大量的过期键存在但是又很少被访问到，那会造成大量的内存空间浪费
+二、主动删除（定时删除）：
+典型的方式为,Redis每秒做10次如下的步骤：
+
+    随机测试100个设置了过期时间的key
+    删除所有发现的已过期的key
+    若删除的key超过25个则重复步骤1
+这是一个基于概率的简单算法，基本的假设是抽出的样本能够代表整个key空间，redis持续清理过期的数据直至将要过期的key的百分比降到了25%以下。
+三、主动删除：
+当前已用内存超过maxmemory限定时，触发主动清理策略
+
+    volatile-lru：只对设置了过期时间的key进行LRU（默认值）
+    allkeys-lru ： 删除lru算法的key
+    volatile-random：随机删除即将过期key
+    allkeys-random：随机删除
+    volatile-ttl ： 删除即将过期的
+    noeviction ： 永不过期，返回错误当mem_used内存已经超过maxmemory的设定，对于所有的读写请求，都会触发redis.c/freeMemoryIfNeeded(void)函数以清理超出的内存。注意这个清理过程是阻塞的，直到清理出足够的内存空间。所以如果在达到maxmemory并且调用方还在不断写入的情况下，可能会反复触发主动清理策略，导致请求会有一定的延迟。
+
+
+redis内存满了 咋整？？
+1. redis内存占用大小：
+如果不设置最大内存大小或者设置最大内存大小为0，在64位操作系统下不限制内存大小，在32位操作系统下最多使用3GB内存
+2. redis内存淘汰：
+noeviction(默认策略)：对于写请求不再提供服务，直接返回错误（DEL请求和部分特殊请求除外）
+
+allkeys-lru：从所有key中使用LRU算法进行淘汰
+
+volatile-lru：从设置了过期时间的key中使用LRU算法进行淘汰
+
+allkeys-random：从所有key中随机淘汰数据
+
+volatile-random：从设置了过期时间的key中随机淘汰
+
+volatile-ttl：在设置了过期时间的key中，根据key的过期时间进行淘汰，越早过期的越优先被淘汰
+（当使用volatile-lru、volatile-random、volatile-ttl这三种策略时，如果没有key可以被淘汰，则和noeviction一样返回错误）
+
+lfu ：最近最少使用
+lru ：最近最少使用 实现方法
+redis的使用场景
+
+
+Redis 常见的性能问题都有哪些？如何解决？
+
+redis面试题
+https://segmentfault.com/a/1190000014507534
+
+https://www.imooc.com/article/36399
+
+https://zhuanlan.zhihu.com/p/32540678

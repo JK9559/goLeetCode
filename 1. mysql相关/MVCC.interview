@@ -1,0 +1,40 @@
+MVCC是什么？
+Multi-Version Concurrency Control, 多版本并发控制
+
+MVCC的基本原理：
+MVCC的实现，通过保存数据在某个时间点的快照来实现的
+
+MVCC实现：
+在每一行数据中额外保存两个隐藏的列：当前行创建时的版本号和删除时的版本号 可空
+insert 时 create version 为当前事务的版本号 delete version 为空
+update 时 先将原纪录的 delete version 更新为当前事务的版本号 再插入一条新记录 的create version为当前事务的版本号
+delete 时 原记录的delete version更新为当前事务的版本号
+select 时 可以读取到：1. delete version未指定 或者 delete version大于当前当前事务的版本号 2. create version小于等于当前版本号
+
+MVCC具体：
+版本链：
+有两个隐藏列；trc_id 用了记录修改记录的事务id 
+roll_pointer 每次对哪条记录进行修改的时候 都会把老版本的记录写入到undo日志里，这个字段保存了上一版本信息的位置指针
+
+readview:
+就是告诉我们在读取时候 会读到哪个版本
+readview中存储这一个列表，其中为活跃着的事务，也就是开始了并未提交的事务：
+假设当前的readview为[80,100]
+访问事务的id是50 小于80 说明事务已提交 可访问
+访问事务的id是90 在80到100之间 判断列表中是否有 如果有 说明未提交 不能访问 如果没有说明已提交 可访问
+访问事务的id是110 大于100 说明这个版本是在readview之后产生的 所以不能被访问
+
+不能访问的话 需要按照访问链从最近的记录开始找 直到找到符合条件的
+对于已提交读的隔离级别：
+同一事务里的先后的select 的readview是不同的 如果在后面的select之前 有事务提交 那么后面的select的readview值列表就会发生变化，会select到已提交的事务的值
+对于可重复读的隔离级别：
+同一事务里先后的select 的readview是相同的 也就是说 就算前面的事务提交了事务 那么后面的select也是之前的值
+
+第二阶段的MVCC
+https://blog.csdn.net/SnailMann/article/details/94724197
+https://www.codercto.com/a/55879.html
+https://blog.csdn.net/weixin_34150830/article/details/91438675?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task
+需要了解的几个点，快照到底是什么？MVCC原理到底是什么？
+
+快照相关：只有快照读的语句才会生成快照 比如不加锁的select语句，当前读的语句不会生成快照 比如 for update
+

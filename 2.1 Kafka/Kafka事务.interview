@@ -1,0 +1,20 @@
+1. 信息保证3级：
+   1) at most once
+   2) at least once
+   3) exactly once
+
+2. 幂等
+enable.idempotence=true
+kafka的幂等 是单个生产者同一会话 session 中单分区的幂等
+
+3. 事务
+transactional.id="transactionId"
+有5个和事务相关的方法：初始化事务 开始事务 事务内的位移提交 提交事务 终止事务
+
+主要解决了流式消费的问题：
+source-topic -> consumer -> logic produce -> producer -> another-topic
+其中只有当producer将消息给了another-topic 才算consumer消费成功，否则就是失败 也就是保证原子性
+和 exactly once
+
+注意 这时 不能使用自动提交 也不能使用手动同步或者异步提交位移
+只能使用事务内的位移提交

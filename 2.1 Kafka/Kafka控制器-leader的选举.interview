@@ -1,0 +1,5 @@
+1. kafka集群中 会有一个或多个broker，其中会有一个broker会被选举为控制器（Kafka Controller）,它负责管理整个集群的所有分区和副本状态。
+2. kafka Controller负责：在某个分区的leader出现故障时 选举出该分区新的leader
+3. 某个分区的ISR In-Sync Replica发生变化时通知所有的broker 更新元数据信息
+4. 任意时刻 集群中有且只有一个控制器
+

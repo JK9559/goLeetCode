@@ -1,0 +1,36 @@
+总的来说：
+redis是非阻塞IO的多路复用。
+非阻塞IO就是读写不必阻塞，而是能读多少能写多少做多少，会在返回时候得到读了多少，写了多少
+区别于阻塞IO。
+在处理请求的时候会同时处理多个通道的读写事件，epoll模型需要了解
+
+客户端和redis的一次通信过程：
+1. 客户端 Socket01 向 Redis 的 Server Socket 请求建立连接，
+    此时 Server Socket 会产生一个 AE_READABLE 事件，IO 多路复用程序
+    监听到 server socket 产生的事件后，将该事件压入队列中。文件事件分派器
+    从队列中获取该事件，交给连接应答处理器。连接应答处理器会创建一个能与客户端
+    通信的 Socket01，并将该 Socket01 的 AE_READABLE 事件与命令请求处理器关联。
+2. 假设此时客户端发送了一个 set key value 请求，此时 Redis 中的 Socket01 会产
+生 AE_READABLE 事件，IO 多路复用程序将事件压入队列，此时事件分派器从队列中获取到该
+事件，由于前面 Socket01 的 AE_READABLE 事件已经与命令请求处理器关联，因此事件分派
+器将事件交给命令请求处理器来处理。命令请求处理器读取 Scket01 的 set key value 并
+在自己内存中完成 set key value 的设置。操作完成后，它会将 Scket01 的 AE_WRITABLE
+ 事件与令回复处理器关联。
+3. 如果此时客户端准备好接收返回结果了，那么 Redis 中的 Socket01 会产生一个
+AE_WRITABLE 事件，同样压入队列中，事件分派器找到相关联的命令回复处理器，由命
+令回复处理器对 socket01 输入本次操作的一个结果，比如 ok，之后解除 Socket01
+的 AE_WRITABLE 事件与命令回复处理器的关联。
+
+
+关于上面提到的AE_WRITABLE和AE_READABLE:
+当socket变得可读时（比如客户端对redis执行write操作，或者close操作），或者有新的可以应答的sccket出现时（客户端对redis执行connect操作），socket就会产生一个AE_READABLE事件。
+当socket变得可写的时候（客户端对redis执行read操作），socket会产生一个AE_WRITABLE事件。
+IO多路复用程序可以同时监听AE_REABLE和AE_WRITABLE两种事件，要是一个socket同时产生了AE_READABLE和AE_WRITABLE两种事件，那么文件事件分派器优先处理AE_REABLE事件，然后才是AE_WRITABLE事件。
+
+
+redis是单线程的为啥快？？
+1. C语言实现
+2. 内存操作
+3. 非阻塞IO 多路复用
+4. 单线程避免上下文操作
+5. 数据结构多

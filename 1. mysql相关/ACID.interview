@@ -1,0 +1,14 @@
+https://blog.csdn.net/dengjili/article/details/824685761
+
+ACID:
+原子性 Atomicity
+一致性 Consistency
+隔离性 Isolation
+持久性 Durability
+
+隔离级别：
+未提交读 什么都可能发生
+已提交读 避免脏读
+可重复读 避免脏读 避免不可重复读
+串行化   避免脏读 避免不可重复读 避免幻读
+

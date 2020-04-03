@@ -1,0 +1,56 @@
+https://mp.weixin.qq.com/s?__biz=MzU0MzQ5MDA0Mw==&mid=2247488820&idx=2&sn=095e6d580c6bf67062cd520621c64d48&chksm=fb0bffa0cc7c76b629b866a1a09fb1cc9db954dd959fe8c488005efdbefb0691c8eedf062204&mpshare=1&scene=1&srcid=&sharer_sharetime=1578924287061&sharer_shareid=5b363f0e9d14af4839e97b4e46f63f54&key=35226551c5c0be7f559ba4ac815ff3c4cdb4e716ea1081559bb5ae635532b332a7a5a0919d0b3e870b3bd4edacb10454d506de33af92032ffc1d448ac908f1efcb58f23ad4c44e7c6eac8d89173c8826&ascene=1&uin=MjE2MjUzODU4MQ%3D%3D&devicetype=Windows+10&version=6208006f&lang=zh_CN&exportkey=AROtuWuQB6JUJj0okiYOiaE%3D&pass_ticket=QSDzKa0DIcajnaqd2BNfObuXtMoMPoxwUI0aZH9DE%2FFyD7OB35EpM%2BAkptZWCAaW
+mysql事务相关概念：
+
+事务想要做到什么？
+可靠性和实现数据库的并发处理
+
+可靠性就是 当数据库在insert或者update等操作时，发生异常或者数据库宕机时，需要保证数据的操作前后一致性。
+也就需要保存修改前和修改后的状态，所以提出了undo log 和 redo log
+
+并发处理就是当多个并发请求发生 并且其中一个请求是对数据修改进行操作的，为了避免读到脏数据，需要对事物之间
+进行读写的隔离，因此使用了mysql的隔离级别。
+
+1. redo log和undo log：
+    redo log：重做日志，用来实现事务的持久性。
+    由两部分组成，重做日志缓存 和 重做日志文件，
+    用redo log来记录已成功提交事务的修改信息，并且会把redo log持久化到磁盘，
+    系统重启之后再读取redo log回复最新数据。
+
+    redo log 工作流程：
+    1. 开始事物
+    2. 执行update或者insert,然后将修改存到Buffer Pool里,等待另外的线程去将缓存同步到磁盘里。
+    3. 记录当前的改动到redo log buffer.
+    4. 执行下一条update或者insert，如此循环
+    5. 最终执行commit
+    6. 将redo log buffer同步到redo log里
+
+    这样的情况下，如果事务commit了，但是Buffer Pool还没同步信息到磁盘，数据库就挂了。
+    那么在重启之后，会读取redo log的信息 对数据进行恢复。
+
+    总结：redo log是用来恢复数据的，用来保障已提交事务的持久化。
+
+    undo log：回滚日志，用来记录数据被修改前的信息，
+    用undo log来记录事务修改前版本的数据信息，当需要回滚时，可以根据undo log
+    的信息来进行回滚到没被修改前的状态。
+
+    总结：undo log是用来回滚数据的 保障了未提交事务的原子性
+2. 锁 和 MVCC
+    读写锁
+    读锁 也叫共享锁，是共享的 不会造成阻塞
+    写锁 也叫排它锁，会一直阻塞 直到写入完成 释放锁
+
+    MVCC 多版本并发控制
+    重要概念有：undo log 和read view
+    undo log来记录某行数据多个版本的数据
+    read view用来判断当前版本事务的可见性
+
+事务的原子性是通过undolog来实现的事务的持久性性是通过redolog来实现的事务的隔离性是通过(读写锁+MVCC)来实现的
+而事务的终极大 boss 一致性是通过原子性，持久性，隔离性来实现的！！！
+
+在mysql写数据的时候 是先写入缓存Buffer Pool再定时同步到磁盘中为了减少IO
+但是为什么还使用redo log 是
+因为redo log的存储是顺序存储的，而缓存同步是随机的
+缓存同步是以数据页为单位的(量大) 而redo log量少
+
+顺序是 先 undo 再 数据修改 再 redo
+

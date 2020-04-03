@@ -1,0 +1,45 @@
+Producer:生产者
+Consumer:消费者
+Broker:服务代理节点
+Topic:主题
+Partition:分区
+offset:偏移量
+Replica:多副本(机制)
+leader副本、follower副本
+副本因子:leader副本个数+follower副本个数
+Consumer采取pull模式从服务端拉取消息,并且保存消费的具体位置(offset)
+
+AR(Assigned Replicas):分区中所有的副本
+ISR(In-Sync Replicas):由与leader保持一定程度同步的副本组成
+OSR(Out-of-Sync Replicas):由与leader同步滞后过多的副本组成
+AR=ISR+OSR
+最好的情况就是 AR=ISR
+
+HW(High Watermark):标识了一个特定的offset 消费者只能pull到这个offset以前的消息
+LEO(Log End Offset):标识了当前日志文件下一条待写入的消息的offset
+
+ISR和HW与LEO有关系 见第6页
+
+Kafka 生产者发送消息有三种模式：
+public Future<RecordMetadata> send(ProducerRecord<K, V> record) {
+    return this.send(record, (Callback)null);
+}
+
+public Future<RecordMetadata> send(ProducerRecord<K, V> record, Callback callback) {
+    ProducerRecord<K, V> interceptedRecord = this.interceptors.onSend(record);
+    return this.doSend(interceptedRecord, callback);
+}
+1. 发后即忘：只管向kafka发送消息 并不关心消息是否正确到达。性能最高 可靠性最差。直接调send即可
+2. 同步：可以利用send的返回值Future<RecordMetadata> 可以实现阻塞等待kafka的响应 并且可以获取topic 等配置信息
+3. 异步：回调函数也可以保证分区有序。对于同一个分区而言，如果record1先于record2发送 那么回调也是1先于2
+
+
+Kafka异常：
+KafkaProducer 会抛出两类异常：可重试异常和不可重试异常
+对于可重试异常 如果配置了retries参数 那么只要在规定的次数内自行恢复 那么便不会抛出异常。
+
+消息在通过send发往broker的时候 需要经过序列化之后 再确定ta所要发往的分区，如果ProducerRecord中没有指定partition
+那么就需要依赖分区器，根据key来计算partition的值，分区器的作用就是为消息分配分区
+
+KafkaProducer 在将消息序列化和计算分区之前 会调用生产者拦截器 onSend 对消息进行相应的定制化操作
+KafkaProducer 在消息被应答之前或者消息发送失败时 调用生产者拦截器 onAcknowledgement,该方法优先于CallBack方法

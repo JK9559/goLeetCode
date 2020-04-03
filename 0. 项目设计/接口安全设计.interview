@@ -1,0 +1,39 @@
+https://mp.weixin.qq.com/s?__biz=MzI3ODcxMzQzMw==&mid=2247492591&idx=3&sn=2c6e12c65366629a278a92fee80f50f9&chksm=eb5066d9dc27efcfb8354e87bf402fb4548eadfefeda285ae9f9b5cfa327c4276a5db65c0a23&mpshare=1&scene=1&srcid=&sharer_sharetime=1581390553881&sharer_shareid=5b363f0e9d14af4839e97b4e46f63f54&key=527fc2835c090a48601f86581e5414a97e7713ee289ed0e5e7cb0437649ba66b49cea497e33ac4a7e124a25a9080c9bce917d564bbd53bab7ba43ccdc1a266159fc26edccbfe4c57936bb19030e4e674&ascene=1&uin=MjE2MjUzODU4MQ%3D%3D&devicetype=Windows+10&version=6208006f&lang=zh_CN&exportkey=AaCtFbQx5jq2csr%2FAg3ltg4%3D&pass_ticket=D3s5vRyoL5sNkKiAp%2FQI%2B6Em4p2f7DRWm42w0YhxoUMkq%2FHCrqtnMtoQtM6RIPaO
+1. 数据加密
+使用https而不是http，为了防止数据被抓包，泄漏信息 --> 知识点
+
+2. 数据加签
+有发送者产生一段无法伪造的数字串，保证数据在传输过程中不被篡改，虽然使用了https
+进行了加密，但是在内网经过很多服务进行跳转，这里的加签，会防止数据在内网被篡改
+
+3. 加入时间戳
+为了防止恶意请求，可以在请求中加入时间戳，来判断是否相差太远，从而来识别恶意请求
+
+4. appId机制
+对外提供的接口 通过appId授权给特定用户进行访问
+
+5. 限流机制
+合法用户的真实请求 如果出现频繁调用 需要进行限流。常用令牌桶和漏铜算法 --> 知识点
+
+6. 黑名单机制
+如果某一个appId进行过很多非法操作，可将其加入黑名单。
+
+7. 数据合法性的校验
+
+
+http://www.iocoder.cn/Fight/How-do-you-robust-back-end-services/?vip
+:
+1. 怀疑第三方
+1.1 制定降级方案 当我们的依赖方挂掉，应该想办法避免服务不可用。todo 金融系统接口如何处理
+1.2 快速失败原则 设置超时时间。为保证交易正确性 提供查询接口进行定时补偿
+
+2. 防备使用方
+2.1 接口最少暴露原则 精简接口数量 减少不必要的接口暴露
+2.2 同一使用场景减少调用次数 比如我们提供了单笔接口 使用方需要循环调用多次，这时就可以提供一个类似的批量接口
+2.3 避免长时间调用的接口 比如批量接口 单次请求1w笔
+2.4 可以做限流措施
+
+3. 加强自身
+3.1 单一职责原则：
+读写分离：也就是mysql的主从复制，读从从服务器读取，写向主服务器写，但是对于一些不能是过期读的交易，必须强制走主库
+资源隔离：todo
