@@ -2,7 +2,12 @@ package main
 
 import "fmt"
 
-func deleteDuplication(head *ListNode) *ListNode {
+type ListNodeDelII struct {
+	val  int
+	next *ListNodeDelII
+}
+
+func deleteDuplication(head *ListNodeDelII) *ListNodeDelII {
 	if head == nil || head.next == nil {
 		return head
 	}
@@ -15,18 +20,19 @@ func deleteDuplication(head *ListNode) *ListNode {
 		return deleteDuplication(nextNode)
 	} else {
 		// 否则 当前节点的next为以下一个节点为首的结果
+		// 为了不丢失这个不同的头结点
 		head.next = deleteDuplication(head.next)
 		return head
 	}
 }
 
 func main() {
-	node := &ListNode{
+	node := &ListNodeDelII{
 		val: 2,
-		next: &ListNode{
+		next: &ListNodeDelII{
 			val: 2,
-			next: &ListNode{
-				val:  2,
+			next: &ListNodeDelII{
+				val:  3,
 				next: nil,
 			},
 		},
